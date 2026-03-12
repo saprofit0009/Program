@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Görev Takip</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --surface: #16161a;
+    --surface2: #1e1e24;
+    --border: #2a2a35;
+    --accent: #c8f135;
+    --accent2: #7c3aed;
+    --text: #f0f0f5;
+    --muted: #6b6b80;
+    --done: #c8f135;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; min-height: 100vh; padding: 24px 20px 40px; animation: fadeUp .35s ease; }
+  .screen.active { display: flex; flex-direction: column; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── HEADER ── */
+  .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+  .badge {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 999px; padding: 6px 14px;
+    font-size: .75rem; color: var(--muted); font-weight: 500;
+  }
+
+  /* ── ADD TASK SCREEN ── */
+  .big-title {
+    font-family: 'Syne', sans-serif; font-weight: 800;
+    font-size: clamp(1.8rem, 6vw, 2.4rem); line-height: 1.15;
+    margin-bottom: 8px;
+  }
+  .sub { color: var(--muted); font-size: .9rem; margin-bottom: 28px; }
+
+  /* Day picker */
+  .day-picker { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 24px; scrollbar-width: none; }
+  .day-picker::-webkit-scrollbar { display: none; }
+  .day-btn {
+    flex-shrink: 0;
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 10px 14px; cursor: pointer;
+    text-align: center; transition: all .2s;
+    min-width: 52px;
+  }
+  .day-btn .dn { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .day-btn .dd { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem; margin-top: 2px; }
+  .day-btn.sel {
+    background: var(--accent); border-color: var(--accent);
+    color: #0d0d0f;
+  }
+  .day-btn.sel .dn { color: rgba(0,0,0,.55); }
+
+  /* Input */
+  .input-wrap { display: flex; gap: 10px; margin-bottom: 12px; }
+  .task-input {
+    flex: 1; background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: .95rem;
+    outline: none; transition: border-color .2s;
+  }
+  .task-input:focus { border-color: var(--accent); }
+  .task-input::placeholder { color: var(--muted); }
+  .add-btn {
+    background: var(--accent); color: #0d0d0f;
+    border: none; border-radius: var(--radius);
+    width: 50px; height: 50px; font-size: 1.4rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; transition: transform .15s, opacity .15s;
+    flex-shrink: 0;
+  }
+  .add-btn:active { transform: scale(.93); }
+
+  /* Task list */
+  .task-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .task-item {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    animation: fadeUp .25s ease;
+  }
+  .task-day-tag {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 3px 8px;
+    font-size: .7rem; color: var(--accent); font-weight: 600;
+    white-space: nowrap;
+  }
+  .task-text { flex: 1; font-size: .9rem; }
+  .del-btn {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 1rem; padding: 4px;
+    transition: color .2s;
+  }
+  .del-btn:hover { color: #ff5e5e; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+  .start-btn {
+    background: var(--accent); color: #0d0d0f;
+    border: none; border-radius: var(--radius);
+    padding: 18px; font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 1rem; cursor: pointer;
+    width: 100%; letter-spacing: .02em; transition: opacity .2s, transform .15s;
+  }
+  .start-btn:hover { opacity: .9; }
+  .start-btn:active { transform: scale(.98); }
+  .start-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+  /* ── ANALYSIS SCREEN ── */
+  #analyzeScreen { gap: 20px; }
+  .analysis-card {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .analysis-card h3 { font-family: 'Syne', sans-serif; font-weight: 700; margin-bottom: 16px; font-size: 1rem; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .bar-label { font-size: .78rem; color: var(--muted); width: 28px; text-align: right; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 8px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 99px; background: var(--accent); transition: width 1s ease; }
+  .bar-count { font-size: .78rem; color: var(--muted); width: 16px; flex-shrink: 0; }
+
+  .stat-row { display: flex; gap: 10px; }
+  .stat-box {
+    flex: 1; background: var(--surface2); border-radius: 12px; padding: 16px;
+    text-align: center;
+  }
+  .stat-num { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.8rem; color: var(--accent); }
+  .stat-lbl { font-size: .72rem; color: var(--muted); margin-top: 4px; }
+
+  .ai-summary {
+    background: linear-gradient(135deg, rgba(124,58,237,.15), rgba(200,241,53,.05));
+    border: 1.5px solid rgba(124,58,237,.3);
+    border-radius: var(--radius); padding: 18px;
+  }
+  .ai-summary .ai-label { font-size: .72rem; color: var(--accent2); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+  .ai-summary p { font-size: .9rem; line-height: 1.6; color: #c0c0d0; }
+
+  .continue-btn {
+    background: var(--accent2); color: #fff;
+    border: none; border-radius: var(--radius);
+    padding: 18px; font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 1rem; cursor: pointer;
+    width: 100%; transition: opacity .2s;
+  }
+  .continue-btn:hover { opacity: .85; }
+
+  /* ── SESSION SCREEN ── */
+  #sessionScreen { }
+  .progress-ring-wrap { display: flex; justify-content: center; margin: 20px 0 28px; }
+  .ring-container { position: relative; width: 140px; height: 140px; }
+  .ring-container svg { transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: var(--surface2); stroke-width: 10; }
+  .ring-progress { fill: none; stroke: var(--accent); stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset .6s ease; }
+  .ring-text {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .ring-pct { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.8rem; }
+  .ring-lbl { font-size: .7rem; color: var(--muted); }
+
+  .session-day-title {
+    font-family: 'Syne', sans-serif; font-weight: 700;
+    font-size: 1.1rem; margin-bottom: 16px; color: var(--muted);
+  }
+  .session-day-title span { color: var(--text); }
+
+  .check-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+  .check-item {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+    display: flex; align-items: center; gap: 14px; cursor: pointer;
+    transition: border-color .2s, background .2s;
+    user-select: none;
+  }
+  .check-item.checked {
+    border-color: var(--accent);
+    background: rgba(200,241,53,.06);
+  }
+  .checkmark {
+    width: 26px; height: 26px; border-radius: 8px;
+    border: 2px solid var(--border); background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all .2s;
+    font-size: .9rem;
+  }
+  .check-item.checked .checkmark {
+    background: var(--accent); border-color: var(--accent); color: #0d0d0f;
+  }
+  .check-label { flex: 1; }
+  .check-label .ctask { font-size: .95rem; }
+  .check-label .cday { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+  .check-item.checked .ctask { text-decoration: line-through; color: var(--muted); }
+
+  .next-day-btn {
+    background: var(--surface); border: 1.5px solid var(--border);
+    color: var(--text); border-radius: var(--radius);
+    padding: 15px; font-family: 'Syne', sans-serif;
+    font-weight: 600; font-size: .95rem; cursor: pointer;
+    width: 100%; transition: border-color .2s;
+    margin-bottom: 10px;
+  }
+  .next-day-btn:hover { border-color: var(--muted); }
+
+  .finish-btn {
+    background: var(--accent); color: #0d0d0f;
+    border: none; border-radius: var(--radius);
+    padding: 18px; font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 1rem; cursor: pointer;
+    width: 100%; transition: opacity .2s;
+  }
+  .finish-btn:hover { opacity: .9; }
+
+  /* ── RESULT SCREEN ── */
+  #resultScreen { align-items: center; text-align: center; justify-content: center; gap: 20px; }
+  .trophy { font-size: 4rem; animation: bounce .6s ease infinite alternate; }
+  @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-10px); } }
+  .result-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2rem; }
+  .result-sub { color: var(--muted); font-size: .95rem; line-height: 1.6; max-width: 280px; }
+  .result-stats { display: flex; gap: 16px; }
+  .result-stat { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 20px 24px; flex: 1; }
+  .result-stat .n { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2rem; color: var(--accent); }
+  .result-stat .l { font-size: .75rem; color: var(--muted); margin-top: 4px; }
+  .restart-btn {
+    background: var(--surface); border: 1.5px solid var(--border);
+    color: var(--text); border-radius: var(--radius);
+    padding: 16px 32px; font-family: 'Syne', sans-serif;
+    font-weight: 600; cursor: pointer; transition: border-color .2s;
+  }
+  .restart-btn:hover { border-color: var(--accent); }
+
+  /* misc */
+  .divider { height: 1px; background: var(--border); margin: 4px 0; }
+  .section-label { font-size: .72rem; color: var(--muted); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<!-- ══════════ ADD TASKS SCREEN ══════════ -->
+<div class="screen active" id="addScreen">
+  <div class="top-bar">
+    <div class="logo">görev<span>.</span></div>
+    <div class="badge" id="taskCountBadge">0 görev</div>
+  </div>
+
+  <div class="big-title">Bu haftanı<br>planla.</div>
+  <div class="sub">Gün seç, görev ekle — sonra başla.</div>
+
+  <div class="section-label">Gün seç</div>
+  <div class="day-picker" id="dayPicker"></div>
+
+  <div class="section-label">Görev ekle</div>
+  <div class="input-wrap">
+    <input class="task-input" id="taskInput" placeholder="Görev yaz…" maxlength="80" />
+    <button class="add-btn" onclick="addTask()">+</button>
+  </div>
+
+  <div class="task-list" id="taskList">
+    <div class="empty-state">
+      <div class="icon">📋</div>
+      <div>Henüz görev yok.<br>Yukarıdan ekleyebilirsin.</div>
+    </div>
+  </div>
+
+  <button class="start-btn" id="startBtn" onclick="goAnalyze()" disabled>
+    Analiz Et &amp; Başla →
+  </button>
+</div>
+
+<!-- ══════════ ANALYSIS SCREEN ══════════ -->
+<div class="screen" id="analyzeScreen">
+  <div class="top-bar">
+    <div class="logo">görev<span>.</span></div>
+    <div class="badge">Analiz</div>
+  </div>
+
+  <div class="big-title" style="margin-bottom:20px">Haftan<br>böyle görünüyor.</div>
+
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div class="stat-lbl">Toplam Görev</div></div>
+    <div class="stat-box"><div class="stat-num" id="statDays">0</div><div class="stat-lbl">Aktif Gün</div></div>
+    <div class="stat-box"><div class="stat-num" id="statAvg">0</div><div class="stat-lbl">Gün Başı Ort.</div></div>
+  </div>
+
+  <div class="analysis-card">
+    <h3>Günlere Dağılım</h3>
+    <div id="barChart"></div>
+  </div>
+
+  <div class="ai-summary">
+    <div class="ai-label">✦ Akıllı Özet</div>
+    <p id="aiSummary">Yükleniyor…</p>
+  </div>
+
+  <button class="continue-btn" onclick="goSession()">Hadi Başlayalım →</button>
+</div>
+
+<!-- ══════════ SESSION SCREEN ══════════ -->
+<div class="screen" id="sessionScreen">
+  <div class="top-bar">
+    <div class="logo">görev<span>.</span></div>
+    <div class="badge" id="sessionBadge">—</div>
+  </div>
+
+  <div class="progress-ring-wrap">
+    <div class="ring-container">
+      <svg width="140" height="140" viewBox="0 0 140 140">
+        <circle class="ring-bg" cx="70" cy="70" r="60"/>
+        <circle class="ring-progress" id="ringProgress" cx="70" cy="70" r="60"
+          stroke-dasharray="377" stroke-dashoffset="377"/>
+      </svg>
+      <div class="ring-text">
+        <div class="ring-pct" id="ringPct">0%</div>
+        <div class="ring-lbl">tamamlandı</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="session-day-title">Bugün: <span id="currentDayLabel">—</span></div>
+
+  <div class="check-list" id="checkList"></div>
+
+  <button class="next-day-btn" id="nextDayBtn" onclick="nextDay()">Sonraki Güne Geç →</button>
+  <button class="finish-btn" onclick="finishSession()">Bitir &amp; Sonuçları Gör</button>
+</div>
+
+<!-- ══════════ RESULT SCREEN ══════════ -->
+<div class="screen" id="resultScreen">
+  <div class="trophy">🏆</div>
+  <div class="result-title" id="resultTitle">Harika!</div>
+  <div class="result-sub" id="resultSub">Haftanı tamamladın.</div>
+  <div class="result-stats">
+    <div class="result-stat"><div class="n" id="rDone">0</div><div class="l">Tamamlandı</div></div>
+    <div class="result-stat"><div class="n" id="rTotal">0</div><div class="l">Toplam</div></div>
+    <div class="result-stat"><div class="n" id="rPct">0%</div><div class="l">Başarı</div></div>
+  </div>
+  <button class="restart-btn" onclick="restart()">Yeni Hafta Başlat</button>
+</div>
+
+<script>
+const DAYS = ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'];
+const FULL = ['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
+
+let tasks = []; // {id, day(0-6), text}
+let selectedDay = 0;
+let sessionDays = []; // sorted unique day indices
+let sessionDayIdx = 0;
+let checkedSet = new Set();
+
+/* ── INIT DAY PICKER ── */
+function initDayPicker() {
+  const dp = document.getElementById('dayPicker');
+  dp.innerHTML = '';
+  DAYS.forEach((d, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'day-btn' + (i === selectedDay ? ' sel' : '');
+    btn.innerHTML = `<div class="dn">${d}</div><div class="dd">${i+1}</div>`;
+    btn.onclick = () => { selectedDay = i; initDayPicker(); };
+    dp.appendChild(btn);
+  });
+}
+
+/* ── ADD TASK ── */
+function addTask() {
+  const input = document.getElementById('taskInput');
+  const text = input.value.trim();
+  if (!text) return;
+  tasks.push({ id: Date.now(), day: selectedDay, text });
+  input.value = '';
+  renderTaskList();
+  updateBadge();
+}
+
+document.getElementById('taskInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addTask();
+});
+
+function renderTaskList() {
+  const list = document.getElementById('taskList');
+  const btn = document.getElementById('startBtn');
+  if (tasks.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📋</div><div>Henüz görev yok.<br>Yukarıdan ekleyebilirsin.</div></div>`;
+    btn.disabled = true;
+    return;
+  }
+  btn.disabled = false;
+  list.innerHTML = '';
+  [...tasks].reverse().forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'task-item';
+    el.innerHTML = `
+      <div class="task-day-tag">${DAYS[t.day]}</div>
+      <div class="task-text">${escHtml(t.text)}</div>
+      <button class="del-btn" onclick="deleteTask(${t.id})">✕</button>
+    `;
+    list.appendChild(el);
+  });
+}
+
+function deleteTask(id) {
+  tasks = tasks.filter(t => t.id !== id);
+  renderTaskList();
+  updateBadge();
+}
+
+function updateBadge() {
+  document.getElementById('taskCountBadge').textContent = `${tasks.length} görev`;
+}
+
+/* ── ANALYSIS ── */
+function goAnalyze() {
+  showScreen('analyzeScreen');
+
+  const total = tasks.length;
+  const daySet = new Set(tasks.map(t => t.day));
+  const days = daySet.size;
+  const avg = days ? (total / days).toFixed(1) : 0;
+
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statDays').textContent = days;
+  document.getElementById('statAvg').textContent = avg;
+
+  // Bar chart
+  const maxCount = Math.max(...DAYS.map((_, i) => tasks.filter(t => t.day === i).length), 1);
+  const chart = document.getElementById('barChart');
+  chart.innerHTML = '';
+  DAYS.forEach((d, i) => {
+    const cnt = tasks.filter(t => t.day === i).length;
+    if (cnt === 0) return;
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    const pct = Math.round((cnt / maxCount) * 100);
+    row.innerHTML = `
+      <div class="bar-label">${d}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:0%" data-pct="${pct}"></div></div>
+      <div class="bar-count">${cnt}</div>
+    `;
+    chart.appendChild(row);
+  });
+  setTimeout(() => {
+    chart.querySelectorAll('.bar-fill').forEach(el => {
+      el.style.width = el.dataset.pct + '%';
+    });
+  }, 100);
+
+  // AI summary
+  generateSummary(total, days, avg);
+}
+
+function generateSummary(total, days, avg) {
+  const el = document.getElementById('aiSummary');
+  // Build smart summary without API call
+  let msgs = [];
+  if (total <= 3) msgs.push('Haftan oldukça sakin görünüyor. Bu az sayıda göreve tam odaklanabilirsin.');
+  else if (total <= 8) msgs.push('Dengeli bir hafta planladın. Hem üretken hem sürdürülebilir bir tempo.');
+  else msgs.push('Yoğun bir haftan var! Önceliklendirmeyi unutma, her göreve gerçekten zaman ayırabilecek misin?');
+
+  if (days <= 2) msgs.push('Görevlerini birkaç güne sıkıştırmışsın — bu günlerde enerjini yüksek tutmaya çalış.');
+  else if (days >= 5) msgs.push('Haftanın büyük kısmını kapsıyorsun, momentum sağlamak için harika.');
+
+  if (parseFloat(avg) > 3) msgs.push('Gün başına 3'ten fazla görev düşüyor; bazılarını daha küçük adımlara bölmeyi düşünebilirsin.');
+
+  const busiestIdx = DAYS.reduce((best, _, i) => {
+    return tasks.filter(t => t.day === i).length > tasks.filter(t => t.day === best).length ? i : best;
+  }, 0);
+  if (tasks.filter(t => t.day === busiestIdx).length > 0) {
+    msgs.push(`En yoğun günün: ${FULL[busiestIdx]}.`);
+  }
+
+  el.textContent = msgs.join(' ');
+}
+
+/* ── SESSION ── */
+function goSession() {
+  sessionDays = [...new Set(tasks.map(t => t.day))].sort((a,b)=>a-b);
+  sessionDayIdx = 0;
+  checkedSet = new Set();
+  renderSession();
+  showScreen('sessionScreen');
+}
+
+function renderSession() {
+  const day = sessionDays[sessionDayIdx];
+  const dayTasks = tasks.filter(t => t.day === day);
+
+  document.getElementById('currentDayLabel').textContent = FULL[day];
+  document.getElementById('sessionBadge').textContent = `${sessionDayIdx+1} / ${sessionDays.length} gün`;
+
+  const list = document.getElementById('checkList');
+  list.innerHTML = '';
+  dayTasks.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'check-item' + (checkedSet.has(t.id) ? ' checked' : '');
+    el.innerHTML = `
+      <div class="checkmark">${checkedSet.has(t.id) ? '✓' : ''}</div>
+      <div class="check-label">
+        <div class="ctask">${escHtml(t.text)}</div>
+        <div class="cday">${FULL[day]}</div>
+      </div>
+    `;
+    el.onclick = () => toggleCheck(t.id);
+    list.appendChild(el);
+  });
+
+  updateRing();
+
+  // Show/hide next day button
+  const nextBtn = document.getElementById('nextDayBtn');
+  nextBtn.style.display = sessionDayIdx < sessionDays.length - 1 ? 'block' : 'none';
+}
+
+function toggleCheck(id) {
+  if (checkedSet.has(id)) checkedSet.delete(id);
+  else checkedSet.add(id);
+  renderSession();
+}
+
+function updateRing() {
+  const total = tasks.length;
+  const done = checkedSet.size;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  const circumference = 2 * Math.PI * 60;
+  const offset = circumference - (pct / 100) * circumference;
+  document.getElementById('ringProgress').style.strokeDashoffset = offset;
+  document.getElementById('ringPct').textContent = pct + '%';
+}
+
+function nextDay() {
+  if (sessionDayIdx < sessionDays.length - 1) {
+    sessionDayIdx++;
+    renderSession();
+  }
+}
+
+function finishSession() {
+  const total = tasks.length;
+  const done = checkedSet.size;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+
+  document.getElementById('rDone').textContent = done;
+  document.getElementById('rTotal').textContent = total;
+  document.getElementById('rPct').textContent = pct + '%';
+
+  let title, sub;
+  if (pct === 100) { title = 'Mükemmel! 🔥'; sub = 'Tüm görevleri tamamladın. Harika bir hafta!'; }
+  else if (pct >= 70) { title = 'Çok İyi!'; sub = `Görevlerin %${pct}'ini bitirdin. Neredeyse mükemmeldi!`; }
+  else if (pct >= 40) { title = 'Fena Değil'; sub = `${done} görevi tamamladın. Haftaya daha iyisini yapabilirsin.`; }
+  else { title = 'Devam Et!'; sub = 'Bu hafta zorlandın ama başlamak bile bir adım. Haftaya daha güçlü!'; }
+
+  document.getElementById('resultTitle').textContent = title;
+  document.getElementById('resultSub').textContent = sub;
+
+  showScreen('resultScreen');
+}
+
+/* ── RESTART ── */
+function restart() {
+  tasks = [];
+  checkedSet = new Set();
+  selectedDay = 0;
+  renderTaskList();
+  updateBadge();
+  initDayPicker();
+  showScreen('addScreen');
+}
+
+/* ── UTILS ── */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Init
+initDayPicker();
+renderTaskList();
+</script>
+</body>
+</html>
